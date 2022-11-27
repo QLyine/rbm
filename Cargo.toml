@@ -1,0 +1,17 @@
+[package]
+name = "rbm"
+version = "0.1.0"
+authors = ["Daniel Santos <dsantos@cryptolab.net>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11" }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0.147", features = ["derive"]}
+serde_yaml = { version = "0.9.14" }
+clap = { version = "4.0", features = ["derive"] }
+dirs ={ version = "4.0.0" }
+tera = {version = "1.17.1"}
+glob ={ version = "0.3" }

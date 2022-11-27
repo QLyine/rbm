@@ -1,0 +1,8 @@
+test1:
+  context:
+    local:
+      url: localhost:8080
+  endpoints:
+    root:
+      method: POST
+      url: http://{{url}}/root
