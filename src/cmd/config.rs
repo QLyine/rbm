@@ -20,15 +20,35 @@ pub type APIContext = HashMap<String, String>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct APIEndpoint {
-    method: String,
-    url: String,
-    headers: Option<HashMap<String, String>>
+    pub method: APIMethod,
+    pub url: String,
+    pub headers: Option<HashMap<String, String>>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum APIMethod {
+    GET, POST, DELETE, PATCH
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct APIConfig {
     context: Option<HashMap<String, APIContext>>,
     endpoints: HashMap<String, APIEndpoint>
+}
+
+impl APIConfig {
+    pub fn contains_endpoint(&self, endpoint: &str) -> bool {
+        return self.endpoints.contains_key(endpoint)
+    }
+    pub fn get_api_endpoint(&self, endpoint: &str) -> Option<&APIEndpoint> {
+        return self.endpoints.get(endpoint)
+    }
+    pub fn contains_context(&self, context: &str) -> bool {
+        return self.context.as_ref().map(|c| c.contains_key(context)).unwrap_or(false)
+    }
+    pub fn get_api_context(&self, context: &str) -> Option<&APIContext> {
+        return self.context.as_ref().map(|c| c.get(context)).flatten()
+    }
 }
 
 impl Config {
@@ -121,7 +141,6 @@ fn read_config(file_config: &PathBuf) -> Config {
     let file_reader = std::fs::File::open(file_config).expect("Could not open config file");
     let mut config: Config = serde_yaml::from_reader(file_reader).expect("Could not parse config file");
     let mut file_directory = std::fs::canonicalize(file_config).unwrap();
-    //let mut file_directory = file_config.clone(); 
     file_directory.pop();
     config.set_config_path(file_directory);
     return config

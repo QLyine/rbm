@@ -9,19 +9,21 @@ pub struct CmdArgs {
     #[arg(short, long, value_name = "FILE")]
     config: Option<PathBuf>,
     #[command(subcommand)]
-    command: Option<Commands>
+    pub command: Commands
 }
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     List,
     Run {
-        #[arg(short = 'i', long)]
-        input: String,
+        #[arg(short = 'a', long)]
+        api: String,
         #[arg(short = 'c', long)]
-        context: String,
+        context: Option<String>,
         #[arg(short = 'e', long)]
-        endpoint: String
+        endpoint: String,
+        #[arg(short = 'I', long)]
+        input: Vec<String>
     }
 }
 
