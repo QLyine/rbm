@@ -2,7 +2,17 @@ test:
   context:
     local:
       url: localhost:8080
+      auth: foo
+    remote:
+      url: https://remote.domain.example.com
+      auth: bar
   endpoints:
     root:
       method: POST
       url: http://{{url}}/root
+      headers:
+        Authorization: "{{ auth }}"
+        Content-Type: application/json
+      body:
+        type: file
+        content: foobar

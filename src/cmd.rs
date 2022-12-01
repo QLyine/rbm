@@ -5,18 +5,9 @@ mod resolver;
 mod error;
 mod executor;
 
-use core::fmt;
 use std::collections::HashMap;
 
 use self::{parser::{CmdArgs, Commands}, config::{Config, APIConfig}, error::ExecutorError};
-
-impl fmt::Display for ExecutorError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ExecutorError::ValidationError(msg) => write!(f, "{}", msg.as_str())
-        }
-    }
-}
 
 fn validate(cmdArgs: &CmdArgs, apis: &HashMap<String, APIConfig>) -> Result<(), ExecutorError> {
     match &cmdArgs.command {

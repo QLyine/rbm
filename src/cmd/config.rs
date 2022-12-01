@@ -1,9 +1,10 @@
-use std::{path::PathBuf, collections::HashMap, hash::Hash};
+use std::{path::PathBuf, collections::HashMap, hash::Hash, str::FromStr, marker::PhantomData, fmt::{self, Display}};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::{Visitor, MapAccess, self}};
 use serde_yaml;
 use dirs;
 use glob::glob;
+use void::Void;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -22,7 +23,26 @@ pub type APIContext = HashMap<String, String>;
 pub struct APIEndpoint {
     pub method: APIMethod,
     pub url: String,
-    pub headers: Option<HashMap<String, String>>
+    pub headers: Option<HashMap<String, String>>,
+    #[serde(deserialize_with = "string_or_struct_opt", default)]
+    pub body: Option<APIBody>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct  APIBody {
+    #[serde(rename = "type")]
+    pub api_body_type: APIBodyType,
+    #[serde(rename = "content")]
+    pub content: String
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub enum APIBodyType {
+    #[serde(alias = "file")]
+
+    FILE,
+    #[serde(alias = "string")]
+
+    STRING
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -144,4 +164,85 @@ fn read_config(file_config: &PathBuf) -> Config {
     file_directory.pop();
     config.set_config_path(file_directory);
     return config
+}
+
+
+fn string_or_struct_opt<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+  T: Deserialize<'de> + FromStr<Err = Void>,
+  D: Deserializer<'de>,
+{
+    struct StringOrStructOpt<T>(PhantomData<T>);
+
+    impl<'de, T> Visitor<'de> for StringOrStructOpt<T>
+    where
+      T: Deserialize<'de> + FromStr<Err = Void>,
+    {
+        type Value = Option<T>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("comma-separated string or null")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+          string_or_struct(deserializer).map(Some)
+        }
+    }
+
+    deserializer.deserialize_option(StringOrStructOpt(PhantomData))
+}
+
+impl FromStr for APIBody {
+  // This implementation of `from_str` can never fail, so use the impossible
+  // `Void` type as the error type.
+  type Err = Void;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+      Result::Ok(APIBody { api_body_type: APIBodyType::STRING, content: s.to_string() })
+  }
+}
+
+fn string_or_struct<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+    T: Deserialize<'de> + FromStr<Err = Void>,
+    D: Deserializer<'de>,
+{
+    struct StringOrStruct<T>(PhantomData<fn() -> T>);
+
+    impl<'de, T> Visitor<'de> for StringOrStruct<T>
+    where
+        T: Deserialize<'de> + FromStr<Err = Void>,
+    {
+        type Value = T;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("string or map")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<T, E>
+        where
+            E: de::Error,
+        {
+            Ok(FromStr::from_str(value).unwrap())
+        }
+
+        fn visit_map<M>(self, map: M) -> Result<T, M::Error>
+        where
+            M: MapAccess<'de>,
+        {
+            Deserialize::deserialize(de::value::MapAccessDeserializer::new(map))
+        }
+    }
+
+    deserializer.deserialize_any(StringOrStruct(PhantomData))
 }
