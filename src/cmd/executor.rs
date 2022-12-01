@@ -19,7 +19,7 @@ impl Engine {
       let mut header_map = HeaderMap::new();
       for (k,v) in headers.iter() {
         let header_name = HeaderName::from_str(k).unwrap();
-        let header_value = HeaderValue::from_str(v).unwrap();
+        let header_value = HeaderValue::from_str(self.resolver.resolve(v).as_str()).unwrap();
         header_map.insert(header_name, header_value);
       }
       header_map
@@ -38,12 +38,14 @@ impl Engine {
         let api_endpoint = api_config.get_api_endpoint(endpoint).unwrap();
         let url = self.resolver.resolve(&api_endpoint.url);
         let resolved_headers = api_endpoint.headers.as_ref().map(|h| self.resolve_headers(h)).unwrap_or_else(|| HeaderMap::new());
-        let mut request = match &api_endpoint.method {
-            config::APIMethod::GET => self.http_client.get(&url).headers(resolved_headers),
-            config::APIMethod::POST => self.http_client.post(&url).headers(resolved_headers),
+        let request = match &api_endpoint.method {
+            config::APIMethod::GET => self.http_client.get(&url),
+            config::APIMethod::POST => self.http_client.post(&url),
             config::APIMethod::DELETE => todo!(),
             config::APIMethod::PATCH => todo!(),
         };
+        println!("{:?}", resolved_headers);
+        let request = request.headers(resolved_headers);
         // request.headers(resolved_headers);
         request.send().unwrap();
         print!("{:?}", url);
