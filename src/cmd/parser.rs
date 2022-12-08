@@ -2,14 +2,14 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use super::config::{Config, self};
+use super::config::{self, Config};
 
 #[derive(Parser, Debug)]
 pub struct CmdArgs {
     #[arg(short, long, value_name = "FILE")]
     config: Option<PathBuf>,
     #[command(subcommand)]
-    pub command: Commands
+    pub command: Commands,
 }
 
 #[derive(Subcommand, Debug)]
@@ -23,16 +23,16 @@ pub enum Commands {
         #[arg(short = 'e', long)]
         endpoint: String,
         #[arg(short = 'I', long)]
-        input: Vec<String>
-    }
+        input: Vec<String>,
+    },
 }
 
 pub fn parse_cli_args() -> CmdArgs {
-    return CmdArgs::parse()
+    return CmdArgs::parse();
 }
 
 impl CmdArgs {
     pub fn read_config(&self) -> Config {
-        return config::read_config_or_create_default(&self.config)
+        return config::read_config_or_create_default(&self.config);
     }
 }

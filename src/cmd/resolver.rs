@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use tera::{Context, Tera};
 
 pub trait Resolver {
@@ -9,16 +7,22 @@ pub trait Resolver {
 
 struct TeraResolver {
     context: Context,
-    tera: Tera
+    tera: Tera,
 }
 
 pub fn new() -> Box<dyn Resolver> {
-    return Box::new(TeraResolver{tera: Tera::default(), context: Context::new() })
+    return Box::new(TeraResolver {
+        tera: Tera::default(),
+        context: Context::new(),
+    });
 }
 
 impl Resolver for TeraResolver {
     fn resolve(&mut self, tpl: &str) -> String {
-        return self.tera.render_str(tpl, &self.context).expect("failed to resolve template");
+        return self
+            .tera
+            .render_str(tpl, &self.context)
+            .expect("failed to resolve template");
     }
     fn add_context(&mut self, key: String, value: &str) {
         self.context.insert(key, value);

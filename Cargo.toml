@@ -16,3 +16,6 @@ dirs = { version = "4.0.0" }
 tera = { version = "1.17.1"}
 glob = { version = "0.3" }
 void = { version = "1.0.2" }
+
+[dev-dependencies]
+httpmock = "0.6.7"

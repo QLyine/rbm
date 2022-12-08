@@ -4,7 +4,7 @@ test:
       url: localhost:8080
       auth: foo
     remote:
-      url: https://remote.domain.example.com
+      url: remote.domain.example.com
       auth: bar
   endpoints:
     root:
@@ -13,6 +13,12 @@ test:
       headers:
         Authorization: "{{ auth }}"
         Content-Type: application/json
-      body:
-        type: file
-        content: foobar
+      body: |
+        {
+          "name": "John Doe",
+          "age": 43,
+          "nick_names": [
+            "nick",
+            "boo"
+          ]
+        }
