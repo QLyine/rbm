@@ -46,7 +46,10 @@ pub struct APIBody {
 
 impl APIBody {
     pub fn new(content: &str, api_type: APIBodyType) -> APIBody {
-        APIBody { api_body_type: api_type, content: content.to_string() }
+        APIBody {
+            api_body_type: api_type,
+            content: content.to_string(),
+        }
     }
 }
 

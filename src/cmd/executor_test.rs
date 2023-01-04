@@ -5,7 +5,7 @@ mod tests {
     use httpmock::Method::{GET, POST};
     use httpmock::MockServer;
 
-    use crate::cmd::config::{APIConfig, APIContext, APIEndpoint, APIMethod, APIBody, APIBodyType};
+    use crate::cmd::config::{APIBody, APIBodyType, APIConfig, APIContext, APIEndpoint, APIMethod};
     use crate::cmd::executor;
 
     #[test]
@@ -28,7 +28,7 @@ mod tests {
             then.status(200);
         });
         let mut engine = executor::new();
-        let api_config = APIConfig::new(create_context(&server.port(), data), create_endpoints()) ;
+        let api_config = APIConfig::new(create_context(&server.port(), data), create_endpoints());
         let context_to_use = Some("local".to_string());
         engine.run(&api_config, "test_endpoint", &context_to_use);
         hello_mock.assert();
@@ -39,13 +39,16 @@ mod tests {
         let api_endpoint = APIEndpoint {
             method: APIMethod::POST,
             url: "http://{{url}}/foo/bar".to_string(),
-            headers: Some(HashMap::from([("Authorization".to_string(), "{{auth}}".to_string())])),
+            headers: Some(HashMap::from([(
+                "Authorization".to_string(),
+                "{{auth}}".to_string(),
+            )])),
             body: Some(APIBody::new("{{body}}", APIBodyType::STRING)),
         };
         HashMap::from([("test_endpoint".to_string(), api_endpoint)])
     }
 
-    fn create_context(port : &u16, req_body: &str) -> Option<HashMap<String, APIContext>> {
+    fn create_context(port: &u16, req_body: &str) -> Option<HashMap<String, APIContext>> {
         let address = format!("localhost:{}", port);
         let api_context_local: APIContext = HashMap::from([
             ("body".to_string(), req_body.to_string()),

@@ -1,12 +1,13 @@
-use std::{collections::HashMap, str::FromStr, path::PathBuf, fs::File};
+use std::{collections::HashMap, fs::File, path::PathBuf, str::FromStr};
 
 use reqwest::{
     self,
-    header::{HeaderMap, HeaderName, HeaderValue}, blocking::{RequestBuilder, Body},
+    blocking::{Body, RequestBuilder},
+    header::{HeaderMap, HeaderName, HeaderValue},
 };
 
 use super::{
-    config::{self, APIConfig, APIBody},
+    config::{self, APIBody, APIConfig},
     resolver::{self, Resolver},
 };
 
@@ -34,9 +35,13 @@ impl Engine {
         header_map
     }
 
-    fn add_body(&mut self, request: RequestBuilder, maybe_body: Option<&APIBody>) -> RequestBuilder {
+    fn add_body(
+        &mut self,
+        request: RequestBuilder,
+        maybe_body: Option<&APIBody>,
+    ) -> RequestBuilder {
         if maybe_body.is_none() {
-            return request
+            return request;
         }
         let body = maybe_body.unwrap();
         let content = self.resolver.resolve(&body.content);
@@ -47,8 +52,10 @@ impl Engine {
         request.body(body_req)
     }
 
-    pub fn run(&mut self, api_config: &APIConfig, endpoint: &str, context: &Option<String>) {
-        println!("{:?}", api_config);
+    pub fn run(&mut self, api_config: &APIConfig, endpoint: &str, context: &Option<String>, inputs: &Vec<(String, String)>) {
+        for (k, v) in inputs.iter() {
+            self.resolver.add_context(k.clone(), v)
+        }
         let maybe_context = context
             .as_ref()
             .map(|c| api_config.get_api_context(c.as_str()))

@@ -58,7 +58,7 @@ pub fn execute(cmd_args: &CmdArgs, config: &Config) -> Result<(), ExecutorError>
         } => {
             let api_config = apis.get(api).unwrap();
             let mut engine = executor::new();
-            engine.run(api_config, endpoint, context);
+            engine.run(api_config, endpoint, context, input);
         }
     }
     return Result::Ok(());

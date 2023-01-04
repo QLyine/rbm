@@ -3,6 +3,7 @@ test:
     local:
       url: localhost:8080
       auth: foo
+      name: John Doe
     remote:
       url: remote.domain.example.com
       auth: bar
@@ -15,7 +16,7 @@ test:
         Content-Type: application/json
       body: |
         {
-          "name": "John Doe",
+          "name": "{{name}}",
           "age": 43,
           "nick_names": [
             "nick",
