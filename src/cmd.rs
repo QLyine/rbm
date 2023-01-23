@@ -4,12 +4,13 @@ mod executor;
 pub mod parser;
 mod resolver;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Write};
 
 use self::{
     config::{APIConfig, Config},
     error::ExecutorError,
-    parser::{CmdArgs, Commands}, executor::{Engine, HttpResponse},
+    executor::{Engine, HttpResponse},
+    parser::{CmdArgs, Commands},
 };
 
 fn validate(cmd_args: &CmdArgs, apis: &HashMap<String, APIConfig>) -> Result<(), ExecutorError> {
@@ -34,7 +35,7 @@ fn validate(cmd_args: &CmdArgs, apis: &HashMap<String, APIConfig>) -> Result<(),
             }
         }
     }
-    return Result::Ok(());
+    Result::Ok(())
 }
 
 fn printer(http_response: HttpResponse, verbose: &bool) -> Result<(), ExecutorError> {
@@ -43,10 +44,12 @@ fn printer(http_response: HttpResponse, verbose: &bool) -> Result<(), ExecutorEr
         for header in http_response.headers.iter() {
             println!("{}: {}", header.key, header.value);
         }
+        println!()
     }
     if !http_response.body.is_empty() {
-        let body_text = String::from_utf8(http_response.body).map_err(|e| ExecutorError::FailedToReadBody(e.to_string()))?;
-        println!("{:?}", body_text);
+        let mut out = std::io::stdout();
+        out.write_all(http_response.body.as_slice()).map_err(|err| ExecutorError::FailedToPrintBody(err.to_string()))?;
+        out.flush().map_err(|err| ExecutorError::FailedToPrintBody(err.to_string()))?;
     }
     Ok(())
 }
@@ -60,8 +63,8 @@ pub fn execute(cmd_args: &CmdArgs, config: &Config) -> Result<(), ExecutorError>
             api,
             context,
             endpoint,
-            input, 
-            verbose 
+            input,
+            verbose,
         } => {
             let api_config = apis.get(api).unwrap();
             let mut engine = Engine::new();
@@ -69,5 +72,5 @@ pub fn execute(cmd_args: &CmdArgs, config: &Config) -> Result<(), ExecutorError>
             printer(result, verbose)?
         }
     }
-    return Result::Ok(());
+    Result::Ok(())
 }

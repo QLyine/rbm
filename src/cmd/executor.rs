@@ -8,39 +8,36 @@ use reqwest::{
 
 use super::{
     config::{self, APIBody, APIConfig},
-    resolver::{self, Resolver}, error::ExecutorError,
+    error::ExecutorError,
+    resolver::{self, Resolver},
 };
 
-const CONTEXT_KEY: &'static str = "context";
+const CONTEXT_KEY: &str = "context";
 
 pub struct Header {
     pub key: String,
-    pub value: String
+    pub value: String,
 }
 
 pub struct HttpResponse {
     pub status: u16,
     pub version: String,
     pub headers: Vec<Header>,
-    pub body: Vec<u8>
+    pub body: Vec<u8>,
 }
-
-
 
 pub struct Engine {
     resolver: Box<dyn Resolver>,
     http_client: reqwest::blocking::Client,
 }
 
-
 impl Engine {
-
     pub fn new() -> Self {
         let resolver = resolver::new();
-        return Engine {
-            resolver: resolver,
+        Engine {
+            resolver,
             http_client: reqwest::blocking::Client::new(),
-        };
+        }
     }
 
     fn resolve_headers(&mut self, headers: &HashMap<String, String>) -> HeaderMap {
@@ -75,15 +72,33 @@ impl Engine {
         let mut headers: Vec<Header> = Vec::with_capacity(response.headers().capacity());
         for (hk, hv) in response.headers().iter() {
             let key = hk.to_string();
-            let value = String::from_utf8(hv.as_bytes().into()).map_err(|e| ExecutorError::FailedToParseHeader(key.clone(), e.to_string()))?;
-            headers.push(Header{ key: key, value: value })
+            let value = String::from_utf8(hv.as_bytes().into())
+                .map_err(|e| ExecutorError::FailedToParseHeader(key.clone(), e.to_string()))?;
+            headers.push(Header {
+                key,
+                value,
+            })
         }
         let version = format!("{:?}", response.version());
-        let body = response.bytes().map(|b| b.to_vec()).map_err(|err| ExecutorError::FailedToReadBody(err.to_string()))?;
-        Result::Ok(HttpResponse { status, version, headers, body })
+        let body = response
+            .bytes()
+            .map(|b| b.to_vec())
+            .map_err(|err| ExecutorError::FailedToReadBody(err.to_string()))?;
+        Result::Ok(HttpResponse {
+            status,
+            version,
+            headers,
+            body,
+        })
     }
 
-    pub fn run(&mut self, api_config: &APIConfig, endpoint: &str, maybe_context: &Option<String>, inputs: &Vec<(String, String)>) -> Result<HttpResponse, ExecutorError>  {
+    pub fn run(
+        &mut self,
+        api_config: &APIConfig,
+        endpoint: &str,
+        maybe_context: &Option<String>,
+        inputs: &Vec<(String, String)>,
+    ) -> Result<HttpResponse, ExecutorError> {
         if let Some(context) = maybe_context {
             self.resolver.add_context(CONTEXT_KEY.to_string(), context)
         }
@@ -92,8 +107,7 @@ impl Engine {
         }
         let maybe_context = maybe_context
             .as_ref()
-            .map(|c| api_config.get_api_context(c.as_str()))
-            .flatten();
+            .and_then(|c| api_config.get_api_context(c.as_str()));
         if let Some(context_to_add) = maybe_context {
             for (k, v) in context_to_add.iter() {
                 self.resolver.add_context(k.clone(), v.as_str())
@@ -105,7 +119,7 @@ impl Engine {
             .headers
             .as_ref()
             .map(|h| self.resolve_headers(h))
-            .unwrap_or_else(|| HeaderMap::new());
+            .unwrap_or_else(HeaderMap::new);
         let request = match &api_endpoint.method {
             config::APIMethod::GET => self.http_client.get(&url),
             config::APIMethod::POST => self.http_client.post(&url),
@@ -114,9 +128,10 @@ impl Engine {
         };
         let request = request.headers(resolved_headers);
         let request = self.add_body(request, api_endpoint.body.as_ref());
-        request.send()
-        .map_err(| e | ExecutorError::HTTPRequestError(e.to_string()))
-        .and_then(Self::map_response)
+        request
+            .send()
+            .map_err(|e| ExecutorError::HTTPRequestError(e.to_string()))
+            .and_then(Self::map_response)
     }
 }
 

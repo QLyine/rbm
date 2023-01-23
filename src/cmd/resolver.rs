@@ -11,18 +11,18 @@ struct TeraResolver {
 }
 
 pub fn new() -> Box<dyn Resolver> {
-    return Box::new(TeraResolver {
+    Box::new(TeraResolver {
         tera: Tera::default(),
         context: Context::new(),
-    });
+    })
 }
 
 impl Resolver for TeraResolver {
     fn resolve(&mut self, tpl: &str) -> String {
-        return self
+        self
             .tera
             .render_str(tpl, &self.context)
-            .expect("failed to resolve template");
+            .expect("failed to resolve template")
     }
     fn add_context(&mut self, key: String, value: &str) {
         self.context.insert(key, value);

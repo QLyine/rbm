@@ -12,4 +12,6 @@ pub enum ExecutorError {
     FailedToParseHeader(String, String),
     #[error("Failed to read body: {0}")]
     FailedToReadBody(String),
+    #[error("Failed to write body into stdout: {0}")]
+    FailedToPrintBody(String),
 }

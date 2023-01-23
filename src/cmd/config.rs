@@ -6,13 +6,13 @@ use std::{
     str::FromStr,
 };
 
-use dirs;
+
 use glob::glob;
 use serde::{
     de::{self, MapAccess, Visitor},
     Deserialize, Deserializer, Serialize,
 };
-use serde_yaml;
+
 use void::Void;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -45,7 +45,7 @@ pub struct APIBody {
 }
 
 impl APIBody {
-    pub fn new(content: &str, api_type: APIBodyType) -> APIBody {
+    pub fn new(content: &str, api_type: APIBodyType) -> Self {
         APIBody {
             api_body_type: api_type,
             content: content.to_string(),
@@ -81,18 +81,18 @@ impl APIConfig {
         endpoints: HashMap<String, APIEndpoint>,
     ) -> APIConfig {
         APIConfig {
-            context: context,
-            endpoints: endpoints,
+            context,
+            endpoints,
         }
     }
 }
 
 impl APIConfig {
     pub fn contains_endpoint(&self, endpoint: &str) -> bool {
-        return self.endpoints.contains_key(endpoint);
+        self.endpoints.contains_key(endpoint)
     }
     pub fn get_api_endpoint(&self, endpoint: &str) -> Option<&APIEndpoint> {
-        return self.endpoints.get(endpoint);
+        self.endpoints.get(endpoint)
     }
     pub fn contains_context(&self, context: &str) -> bool {
         return self
@@ -102,7 +102,7 @@ impl APIConfig {
             .unwrap_or(false);
     }
     pub fn get_api_context(&self, context: &str) -> Option<&APIContext> {
-        return self.context.as_ref().map(|c| c.get(context)).flatten();
+        return self.context.as_ref().and_then(|c| c.get(context));
     }
 }
 
@@ -113,8 +113,8 @@ impl Config {
 
     fn read_api(api_file: &PathBuf) -> HashMap<String, APIConfig> {
         let error_msg = format!("Could not open api file {:?}", api_file);
-        let file_reader = std::fs::File::open(api_file).expect(error_msg.as_str());
-        return serde_yaml::from_reader(file_reader).expect("Could not parse config file");
+        let file_reader = std::fs::File::open(api_file).unwrap_or_else(|_| { panic!("{}", error_msg) });
+        serde_yaml::from_reader(file_reader).expect("Could not parse config file")
     }
 
     pub fn read_apis(&self) -> HashMap<String, APIConfig> {
@@ -145,35 +145,35 @@ impl Config {
                         let apis = Config::read_api(&file);
                         result.extend(apis)
                     }
-                    Err(e) => {}
+                    Err(_e) => {}
                 }
             }
         }
-        return result;
+        result
     }
 }
 
 pub fn read_config_or_create_default(maybe_config: &Option<PathBuf>) -> Config {
-    return match maybe_config {
+    match maybe_config {
         Some(file) => read_config(file),
         None => read_default_config(),
-    };
+    }
 }
 
 fn default_rbm_directory() -> PathBuf {
     let mut config_directory =
         dirs::config_dir().expect("Could not read the default config directory");
     config_directory.push("rbm");
-    return config_directory;
+    config_directory
 }
 
 fn create_default_config() -> Config {
     let apis: Vec<PathBuf> = vec!["apis".into()];
-    return Config {
+    Config {
         config_directory: default_rbm_directory(),
         api_collection_directory: apis,
         global_context: None,
-    };
+    }
 }
 
 fn write_config(path: PathBuf, config: &Config) {
@@ -190,14 +190,14 @@ fn read_default_config() -> Config {
     if !config_directory.exists() {
         std::fs::create_dir(&config_directory).unwrap();
     }
-    let mut config_file_path: PathBuf = config_directory.clone();
+    let mut config_file_path: PathBuf = config_directory;
     config_file_path.push("config");
     if config_file_path.exists() {
         return read_config(&config_file_path);
     }
     let default_config = create_default_config();
     write_config(config_file_path, &default_config);
-    return default_config;
+    default_config
 }
 
 fn read_config(file_config: &PathBuf) -> Config {
@@ -207,7 +207,7 @@ fn read_config(file_config: &PathBuf) -> Config {
     let mut file_directory = std::fs::canonicalize(file_config).unwrap();
     file_directory.pop();
     config.set_config_path(file_directory);
-    return config;
+    config
 }
 
 fn string_or_struct_opt<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>

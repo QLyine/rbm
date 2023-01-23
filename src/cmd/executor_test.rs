@@ -2,11 +2,11 @@
 mod tests {
     use std::collections::HashMap;
 
-    use httpmock::Method::{GET, POST};
+    use httpmock::Method::{POST};
     use httpmock::MockServer;
 
     use crate::cmd::config::{APIBody, APIBodyType, APIConfig, APIContext, APIEndpoint, APIMethod};
-    use crate::cmd::executor::{self, Engine};
+    use crate::cmd::executor::{Engine};
 
     #[test]
     fn post_expansion_test() -> std::io::Result<()> {
@@ -25,8 +25,7 @@ mod tests {
                 .path("/foo/bar")
                 .body(data)
                 .header("Authorization", "foo");
-            then.status(200)
-                .body(data.as_bytes());
+            then.status(200).body(data.as_bytes());
         });
         let mut engine = Engine::new();
         let api_config = APIConfig::new(create_context(&server.port(), data), create_endpoints());
@@ -70,6 +69,6 @@ mod tests {
             ("local".to_string(), api_context_local),
             ("remote".to_string(), api_context_remote),
         ]);
-        return Some(context);
+        Some(context)
     }
 }

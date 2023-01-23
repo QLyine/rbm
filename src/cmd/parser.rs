@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand, builder::TypedValueParser, error::{ContextKind, ContextValue}};
+use clap::{
+    builder::TypedValueParser,
+    error::{ContextKind, ContextValue},
+    Parser, Subcommand,
+};
 use std::error::Error;
 
 use super::config::{self, Config};
@@ -34,7 +38,7 @@ struct PairStringParser {}
 
 impl PairStringParser {
     pub fn new() -> Self {
-        Self {  }
+        Self {}
     }
 }
 
@@ -43,18 +47,22 @@ impl TypedValueParser for PairStringParser {
 
     fn parse_ref(
         &self,
-        cmd: &clap::Command,
-        arg: Option<&clap::Arg>,
+        _cmd: &clap::Command,
+        _arg: Option<&clap::Arg>,
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
-        return value.to_str().map(|str| parse_key_val(str)).unwrap_or_else(|| {
+        return value
+            .to_str()
+            .map(parse_key_val)
+            .unwrap_or_else(|| {
                 let mut err = clap::Error::new(clap::error::ErrorKind::InvalidValue);
-                err.insert(ContextKind::InvalidArg, ContextValue::String("argument cannot be empty".to_owned()));
+                err.insert(
+                    ContextKind::InvalidArg,
+                    ContextValue::String("argument cannot be empty".to_owned()),
+                );
                 Result::Err(err)
-            }
-        )
+            });
     }
-
 }
 
 /// Parse a single key-value pair
@@ -67,16 +75,20 @@ where
 {
     let pos = s
         .find('=')
-        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{}`", s)).expect("msg");
-    Ok((s[..pos].parse().expect("msg"), s[pos + 1..].parse().expect("msg")))
+        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{}`", s))
+        .expect("msg");
+    Ok((
+        s[..pos].parse().expect("msg"),
+        s[pos + 1..].parse().expect("msg"),
+    ))
 }
 
 pub fn parse_cli_args() -> CmdArgs {
-    return CmdArgs::parse();
+    CmdArgs::parse()
 }
 
 impl CmdArgs {
     pub fn read_config(&self) -> Config {
-        return config::read_config_or_create_default(&self.config);
+        config::read_config_or_create_default(&self.config)
     }
 }
