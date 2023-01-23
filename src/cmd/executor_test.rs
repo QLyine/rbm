@@ -6,7 +6,7 @@ mod tests {
     use httpmock::MockServer;
 
     use crate::cmd::config::{APIBody, APIBodyType, APIConfig, APIContext, APIEndpoint, APIMethod};
-    use crate::cmd::executor;
+    use crate::cmd::executor::{self, Engine};
 
     #[test]
     fn post_expansion_test() -> std::io::Result<()> {
@@ -25,12 +25,19 @@ mod tests {
                 .path("/foo/bar")
                 .body(data)
                 .header("Authorization", "foo");
-            then.status(200);
+            then.status(200)
+                .body(data.as_bytes());
         });
-        let mut engine = executor::new();
+        let mut engine = Engine::new();
         let api_config = APIConfig::new(create_context(&server.port(), data), create_endpoints());
         let context_to_use = Some("local".to_string());
-        engine.run(&api_config, "test_endpoint", &context_to_use);
+        let inputs = vec![];
+        let result = engine.run(&api_config, "test_endpoint", &context_to_use, &inputs);
+        assert_eq!(result.is_ok(), true);
+        let response = result.unwrap();
+        assert_eq!(response.status, 200);
+        let body = response.body;
+        assert_eq!(body.is_empty(), false);
         hello_mock.assert();
         Ok(())
     }

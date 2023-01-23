@@ -2,29 +2,47 @@ use std::{collections::HashMap, fs::File, path::PathBuf, str::FromStr};
 
 use reqwest::{
     self,
-    blocking::{Body, RequestBuilder},
+    blocking::{Body, RequestBuilder, Response},
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 
 use super::{
     config::{self, APIBody, APIConfig},
-    resolver::{self, Resolver},
+    resolver::{self, Resolver}, error::ExecutorError,
 };
+
+const CONTEXT_KEY: &'static str = "context";
+
+pub struct Header {
+    pub key: String,
+    pub value: String
+}
+
+pub struct HttpResponse {
+    pub status: u16,
+    pub version: String,
+    pub headers: Vec<Header>,
+    pub body: Vec<u8>
+}
+
+
 
 pub struct Engine {
     resolver: Box<dyn Resolver>,
     http_client: reqwest::blocking::Client,
 }
 
-pub fn new() -> Engine {
-    let resolver = resolver::new();
-    return Engine {
-        resolver: resolver,
-        http_client: reqwest::blocking::Client::new(),
-    };
-}
 
 impl Engine {
+
+    pub fn new() -> Self {
+        let resolver = resolver::new();
+        return Engine {
+            resolver: resolver,
+            http_client: reqwest::blocking::Client::new(),
+        };
+    }
+
     fn resolve_headers(&mut self, headers: &HashMap<String, String>) -> HeaderMap {
         let mut header_map = HeaderMap::new();
         for (k, v) in headers.iter() {
@@ -52,11 +70,27 @@ impl Engine {
         request.body(body_req)
     }
 
-    pub fn run(&mut self, api_config: &APIConfig, endpoint: &str, context: &Option<String>, inputs: &Vec<(String, String)>) {
+    fn map_response(response: Response) -> Result<HttpResponse, ExecutorError> {
+        let status = response.status().as_u16();
+        let mut headers: Vec<Header> = Vec::with_capacity(response.headers().capacity());
+        for (hk, hv) in response.headers().iter() {
+            let key = hk.to_string();
+            let value = String::from_utf8(hv.as_bytes().into()).map_err(|e| ExecutorError::FailedToParseHeader(key.clone(), e.to_string()))?;
+            headers.push(Header{ key: key, value: value })
+        }
+        let version = format!("{:?}", response.version());
+        let body = response.bytes().map(|b| b.to_vec()).map_err(|err| ExecutorError::FailedToReadBody(err.to_string()))?;
+        Result::Ok(HttpResponse { status, version, headers, body })
+    }
+
+    pub fn run(&mut self, api_config: &APIConfig, endpoint: &str, maybe_context: &Option<String>, inputs: &Vec<(String, String)>) -> Result<HttpResponse, ExecutorError>  {
+        if let Some(context) = maybe_context {
+            self.resolver.add_context(CONTEXT_KEY.to_string(), context)
+        }
         for (k, v) in inputs.iter() {
             self.resolver.add_context(k.clone(), v)
         }
-        let maybe_context = context
+        let maybe_context = maybe_context
             .as_ref()
             .map(|c| api_config.get_api_context(c.as_str()))
             .flatten();
@@ -80,7 +114,9 @@ impl Engine {
         };
         let request = request.headers(resolved_headers);
         let request = self.add_body(request, api_endpoint.body.as_ref());
-        request.send().unwrap();
+        request.send()
+        .map_err(| e | ExecutorError::HTTPRequestError(e.to_string()))
+        .and_then(Self::map_response)
     }
 }
 

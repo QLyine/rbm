@@ -25,6 +25,8 @@ pub enum Commands {
         endpoint: String,
         #[arg(short = 'i', long, value_parser = PairStringParser::new())]
         input: Vec<(String, String)>,
+        #[arg(short = 'v', long, default_value = "false")]
+        verbose: bool,
     },
 }
 #[derive(Copy, Clone, Debug)]

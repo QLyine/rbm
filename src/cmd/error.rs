@@ -1,13 +1,15 @@
-use std::fmt;
+use thiserror::Error;
 
+#[derive(Error, Debug)]
 pub enum ExecutorError {
-    ValidationError(String),
-}
-
-impl fmt::Display for ExecutorError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ExecutorError::ValidationError(msg) => write!(f, "{}", msg.as_str()),
-        }
-    }
+    #[error("API not found: {0}")]
+    APINotFound(String),
+    #[error("Endpoint not found: {0}")]
+    EndpointNotFound(String),
+    #[error("HTTP Request error: {0}")]
+    HTTPRequestError(String),
+    #[error("Failed to parse header: {0}. Err: {1}")]
+    FailedToParseHeader(String, String),
+    #[error("Failed to read body: {0}")]
+    FailedToReadBody(String),
 }
