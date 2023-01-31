@@ -34,6 +34,14 @@ pub struct APIEndpoint {
     pub headers: Option<HashMap<String, String>>,
     #[serde(deserialize_with = "string_or_struct_opt", default)]
     pub body: Option<APIBody>,
+    pub auth: Option<AuthEndpoint>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum AuthEndpoint {
+    #[serde(rename = "basic")]
+    Basic{username: String, password: String}
 }
 
 #[derive(Serialize, Deserialize, Debug)]

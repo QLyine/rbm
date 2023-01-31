@@ -7,7 +7,7 @@ use reqwest::{
 };
 
 use super::{
-    config::{self, APIBody, APIConfig},
+    config::{self, APIBody, APIConfig, AuthEndpoint},
     error::ExecutorError,
     resolver::{self, Resolver},
 };
@@ -92,6 +92,17 @@ impl Engine {
         })
     }
 
+    fn add_auth(&mut self, request: RequestBuilder, auth_endpoint: &AuthEndpoint) -> RequestBuilder {
+        match auth_endpoint {
+            AuthEndpoint::Basic { username, password } => 
+                request.basic_auth(
+                    self.resolver.resolve(username), 
+                    Some(self.resolver.resolve(password))
+                ),
+            _ => request
+        }
+    }
+
     pub fn run(
         &mut self,
         api_config: &APIConfig,
@@ -126,7 +137,13 @@ impl Engine {
             config::APIMethod::DELETE => self.http_client.delete(&url),
             config::APIMethod::PATCH => self.http_client.patch(&url),
         };
-        let request = request.headers(resolved_headers);
+        let request = if let Some(auth_endpoint) = &api_endpoint.auth  {
+            self.add_auth(request, auth_endpoint)
+        } else {
+            request
+        }
+        .headers(resolved_headers);
+
         let request = self.add_body(request, api_endpoint.body.as_ref());
         request
             .send()

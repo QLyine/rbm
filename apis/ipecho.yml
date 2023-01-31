@@ -1,0 +1,14 @@
+echo:
+  context:
+    remote:
+      url: postman-echo.com
+      username: foobar
+      password: super_secret
+  endpoints:
+    echo:
+      method: GET
+      url: 'http://{{url}}/get'
+      auth:
+        type: basic
+        username: '{{username}}'
+        password: '{{password}}'
